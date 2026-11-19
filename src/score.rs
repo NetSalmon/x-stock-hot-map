@@ -1,3 +1,6 @@
+// Copyright (C) 2026 NetSalmon
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::collections::HashMap;
 
 use crate::model::{Dir, Event, Kind, MarketAgg, UserOut, Zdf};

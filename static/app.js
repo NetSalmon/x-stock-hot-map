@@ -1,3 +1,5 @@
+/* Copyright (C) 2026 NetSalmon. SPDX-License-Identifier: AGPL-3.0-only */
+
 const SCALE = [
   "#f63538", "#ee373a", "#e6393b", "#df3a3d", "#d73c3f", "#ce3d41", "#c73e43",
   "#bf4045", "#b64146", "#ae4248", "#a5424a", "#9d434b", "#94444d", "#8b444e",

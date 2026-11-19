@@ -1,3 +1,6 @@
+// Copyright (C) 2026 NetSalmon
+// SPDX-License-Identifier: AGPL-3.0-only
+
 mod demo;
 mod model;
 mod score;

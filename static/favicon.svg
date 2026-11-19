@@ -1,3 +1,4 @@
+<!-- Copyright (C) 2026 NetSalmon. SPDX-License-Identifier: AGPL-3.0-only -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="6" fill="#e41414"/>
   <path d="M9 8h4.2l2.8 5.2L18.8 8H23l-4.7 8.1L23.2 24h-4.2l-3-5.4-3 5.4H8.8l4.9-7.9z" fill="#fff"/>

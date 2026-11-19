@@ -47,6 +47,7 @@ jobs:
           fi
           mkdir -p "pack/${name}"
           cp "target/${target}/release/${bin}" "pack/${name}/"
+          cp LICENSE "pack/${name}/LICENSE"
           cp -R static "pack/${name}/static"
           mkdir -p release
           tar -C pack -czf "release/${name}.tar.gz" "${name}"

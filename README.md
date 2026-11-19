@@ -26,3 +26,11 @@
 ```bash
 cargo run --release
 ```
+
+## 许可证
+
+[GNU Affero General Public License v3.0](LICENSE)（AGPL-3.0-only）。
+
+Copyright (C) 2026 NetSalmon
+
+这是一个通过网络使用的程序。分发时要附上本许可证和对应源码。改过之后如果继续通过网络提供给别人用，也要向这些用户提供对应源码。软件按原样提供，没有担保。
