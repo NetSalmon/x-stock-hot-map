@@ -435,7 +435,7 @@ select option:disabled { color: #aaa; }
   padding-right: 6px;
 }
 
-.fpbtns ul { margin: 0; padding: 0; display: flex; gap: 6px; }
+.fpbtns ul { margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .fpbtns li {
   list-style: none;
   height: 22px;
@@ -449,7 +449,8 @@ select option:disabled { color: #aaa; }
 .fpbtns li:hover { filter: brightness(1.12); }
 .fpbtns li.disabled { background: #e09e56; cursor: not-allowed; }
 
-.cbr { min-width: 0; max-width: calc(100% - 220px); }
+.cbl { flex: 0 1 auto; }
+.cbr { flex: 1 1 240px; min-width: 0; max-width: none; display: flex; justify-content: flex-end; }
 .chartcolortip { overflow-x: auto; max-width: 100%; }
 .chartcolortip ul { margin: 0; padding: 0; display: flex; gap: 1px; width: max-content; }
 .chartcolortip li {

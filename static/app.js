@@ -183,6 +183,8 @@ function boot() {
     requestAnimationFrame(resize);
   });
   $("copyId").addEventListener("click", copyId);
+  $("exportImage").addEventListener("click", exportImage);
+  $("shareX").addEventListener("click", shareToX);
   $("openHome").addEventListener("click", () => {
     const name = state.circle && state.circle.username;
     if (!name || name === "demo") return;
@@ -383,6 +385,8 @@ function applyCircle(circle, push) {
   setStatus(state.baseStatus);
   $("copyId").classList.toggle("disabled", circle.id === "demo");
   $("openHome").classList.toggle("disabled", !circle.username || circle.username === "demo");
+  $("exportImage").classList.remove("disabled");
+  $("shareX").classList.remove("disabled");
   if (push) {
     const path = `/c/${circle.id}`;
     if (location.pathname !== path) history.pushState({ id: circle.id }, "", path);
@@ -1253,6 +1257,130 @@ async function sendFeedback() {
   note.style.color = "#0a7a32";
   note.textContent = "已保存，谢谢。";
   $("fbText").value = "";
+}
+
+function colorLabel() {
+  const found = COLORS.find(([value]) => value === state.colorKey);
+  return found ? found[1] : "色彩";
+}
+
+function universeLabel() {
+  const found = UNIVERSES.find(([value]) => value === state.universe);
+  return found ? found[1] : "";
+}
+
+function shareUrl() {
+  return new URL(`/c/${state.circle.id}`, location.origin).href;
+}
+
+function shareText() {
+  const circle = state.circle;
+  const who = circle.source === "demo" ? "示例盘面" : `@${circle.username}`;
+  return `${who} 的互动星图 · ${colorLabel()}`;
+}
+
+function exportName() {
+  const name = String(state.circle.username || "map").replace(/[^\w.-]+/g, "");
+  return `xstar-${name || "map"}.png`;
+}
+
+function posterCanvas() {
+  const dpr = canvas.width / Math.max(canvas.clientWidth, 1);
+  const headerH = Math.round(56 * dpr);
+  const footerH = Math.round(36 * dpr);
+  const out = document.createElement("canvas");
+  out.width = canvas.width;
+  out.height = canvas.height + headerH + footerH;
+  const g = out.getContext("2d");
+  const circle = state.circle;
+  g.fillStyle = "#262931";
+  g.fillRect(0, 0, out.width, out.height);
+  g.fillStyle = "#383b44";
+  g.fillRect(0, 0, out.width, headerH);
+  const mark = Math.round(18 * dpr);
+  const left = 16 * dpr;
+  g.fillStyle = "#e41414";
+  g.fillRect(left, (headerH - mark) / 2, mark, mark);
+  g.fillStyle = "#fff";
+  g.textBaseline = "middle";
+  g.font = `700 ${Math.round(20 * dpr)}px sans-serif`;
+  const who = circle.source === "demo" ? "示例盘面" : `@${circle.username}`;
+  const titleX = left + mark + 10 * dpr;
+  g.fillText(`X星图  ${who}`, titleX, headerH * 0.38);
+  g.font = `${Math.round(13 * dpr)}px sans-serif`;
+  g.fillStyle = "#c5c8d0";
+  g.fillText(`${colorLabel()} · ${universeLabel()} · ${circle.users.length}人`, titleX, headerH * 0.72);
+  if (canvas.clientWidth >= 800) {
+    g.textAlign = "right";
+    g.fillStyle = "#9aa0ae";
+    g.font = `${Math.round(12 * dpr)}px sans-serif`;
+    g.fillText(shareUrl(), out.width - left, headerH / 2);
+    g.textAlign = "left";
+  }
+  g.drawImage(canvas, 0, headerH);
+  const ticks = legendTicks();
+  const gap = 2 * dpr;
+  const pad = 8 * dpr;
+  const boxW = (out.width - pad * 2 - gap * (ticks.length - 1)) / ticks.length;
+  const boxH = Math.min(22 * dpr, footerH - 8 * dpr);
+  const top = headerH + canvas.height + (footerH - boxH) / 2;
+  g.font = `${Math.max(9 * dpr, 10)}px sans-serif`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  ticks.forEach((value, i) => {
+    const x = pad + i * (boxW + gap);
+    g.fillStyle = colorFor(value);
+    g.fillRect(x, top, boxW, boxH);
+    g.fillStyle = "#fff";
+    g.save();
+    g.beginPath();
+    g.rect(x, top, boxW, boxH);
+    g.clip();
+    g.fillText(value > 0 ? `+${value}` : String(value), x + boxW / 2, top + boxH / 2);
+    g.restore();
+  });
+  return out;
+}
+
+function exportImage() {
+  if (!state.circle || $("exportImage").classList.contains("disabled")) return;
+  const link = document.createElement("a");
+  link.href = posterCanvas().toDataURL("image/png");
+  link.download = exportName();
+  link.click();
+}
+
+function dataUrlToBlob(dataUrl) {
+  const [head, body] = dataUrl.split(",");
+  const mime = (head.match(/:(.*?);/) || [])[1] || "image/png";
+  const binary = atob(body);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+async function shareToX() {
+  if (!state.circle || $("shareX").classList.contains("disabled")) return;
+  const text = shareText();
+  const url = shareUrl();
+  let file = null;
+  try {
+    file = new File([dataUrlToBlob(posterCanvas().toDataURL("image/png"))], exportName(), { type: "image/png" });
+  } catch {
+    file = null;
+  }
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], text, url });
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+    }
+  }
+  const intent = new URL("https://x.com/intent/tweet");
+  intent.searchParams.set("text", text);
+  intent.searchParams.set("url", url);
+  window.open(intent.toString(), "_blank", "noopener,noreferrer");
 }
 
 async function copyId() {
