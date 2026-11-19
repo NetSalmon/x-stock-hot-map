@@ -1,0 +1,90 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="${{ matrix.target }}"
+          name="x-stock-hot-map-${target}"
+          if [[ "${target}" == *windows* ]]; then
+            bin="x-stock-hot-map.exe"
+          else
+            bin="x-stock-hot-map"
+          fi
+          mkdir -p "pack/${name}"
+          cp "target/${target}/release/${bin}" "pack/${name}/"
+          cp -R static "pack/${name}/static"
+          mkdir -p release
+          tar -C pack -czf "release/${name}.tar.gz" "${name}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: release/*.tar.gz
+
+  publish:
+    name: publish
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: incoming
+          merge-multiple: true
+      - name: Collect archives
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          find incoming -name '*.tar.gz' -exec cp {} release/ \;
+          ls -lh release
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body: |
+            五个系统的 release。解开压缩包后，在该目录运行里面的程序，浏览器打开 http://127.0.0.1:8787 。
+
+            页面在旁边的 `static/`，圈子数据写到同目录的 `data/`。端口用环境变量 `PORT` 修改。
+
+            | 文件 | 系统 |
+            | --- | --- |
+            | `x-stock-hot-map-x86_64-unknown-linux-gnu.tar.gz` | Linux x86_64 |
+            | `x-stock-hot-map-aarch64-unknown-linux-gnu.tar.gz` | Linux arm64 |
+            | `x-stock-hot-map-x86_64-pc-windows-msvc.tar.gz` | Windows x64 |
+            | `x-stock-hot-map-aarch64-apple-darwin.tar.gz` | macOS Apple 芯片 |
+            | `x-stock-hot-map-x86_64-apple-darwin.tar.gz` | macOS Intel |
+          files: release/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

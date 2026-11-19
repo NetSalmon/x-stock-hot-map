@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>X星图 — 互动热力</title>
+  <meta name="description" content="把一个 X 账号的公开互动圈画成星图。面积是互动强度，颜色是升温或净流入。">
+  <link rel="icon" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header class="tophead">
+    <div class="logo">
+      <a href="/" aria-label="X星图首页"><img src="/assets/favicon.svg" alt=""></a>
+      <img id="ownerAvatar" class="owner-avatar" alt="" hidden>
+      <span class="sx">|</span>
+      <span class="homelink"><a href="/">X星图</a></span>
+    </div>
+    <div class="topzs" id="topzs" aria-label="盘面摘要"></div>
+    <form class="search" id="searchForm">
+      <div class="inputwrap">
+        <span>@</span>
+        <input id="username" maxlength="15" placeholder="用户名" autocomplete="off" spellcheck="false">
+      </div>
+      <button type="submit" id="go">生成</button>
+      <button type="button" id="demoBtn">示例</button>
+    </form>
+    <div class="fullscreen">
+      <button type="button" class="textbtn" id="optBtn">选项</button>
+      <a href="#" id="boardBtn">排行榜</a>
+      <a href="#" id="feedbackBtn" class="feedbackbtn">意见反馈</a>
+      <a href="#" id="fullBtn" class="fullscreen-btn">全屏</a>
+    </div>
+  </header>
+
+  <div class="mainbody">
+    <aside class="leftbar" id="leftbar">
+      <div class="quotetime" id="quotetime" title="采集时间">等待生成</div>
+      <div class="charttype"><ul id="universes"></ul></div>
+      <div class="colortype">
+        <div class="title">色彩代表</div>
+        <select id="colorKey" aria-label="色彩代表"></select>
+      </div>
+      <div class="boxtype">
+        <div class="title">面积代表</div>
+        <select id="areaKey" aria-label="面积代表"></select>
+      </div>
+      <div class="boxtype">
+        <div class="title">高亮</div>
+        <label class="dpslabel"><input type="checkbox" id="watchOn">我的自选</label>
+        <div class="hl_d2">
+          <input id="watchList" class="custom_stocks" placeholder="自定义高亮用户名" aria-label="自定义高亮用户名">
+        </div>
+      </div>
+      <div class="boxtype">
+        <div class="title">板块选择</div>
+        <select id="level" aria-label="板块层级"></select>
+        <div class="backrow"><a href="#" id="backBtn">返回</a></div>
+      </div>
+      <div class="quotepagetype">
+        <div class="title">双击跳转到</div>
+        <select id="jump" aria-label="双击跳转">
+          <option value="x">X 主页</option>
+        </select>
+      </div>
+      <label class="dpslabel persist"><input type="checkbox" id="persist" checked>长期保存此星图</label>
+      <div class="lookup">
+        <div class="title">查找圈子</div>
+        <div class="lookuprow">
+          <input id="lookupId" maxlength="8" placeholder="圈子 ID" aria-label="圈子 ID">
+          <button type="button" id="lookupBtn" aria-label="打开圈子">→</button>
+        </div>
+      </div>
+      <div class="quotezdnumbs">
+        <div class="zdnums">
+          <span><div class="price_up">流入</div><div id="upN">-</div></span>
+          <span><div>均衡</div><div id="flatN">-</div></span>
+          <span><div class="price_down">流出</div><div id="downN">-</div></span>
+        </div>
+        <div class="cjec">
+          <span><div>互动分</div><div id="scoreN">-</div></span>
+          <span><div>比前窗</div><div id="chgN">-</div></span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="mainchart" id="mainchart">
+      <div id="chartd"><canvas id="treemap"></canvas></div>
+      <div id="stockinfo" role="tooltip"></div>
+      <div id="chartd2">
+        <div id="stockborder"></div>
+        <div id="bktitlebgd"></div>
+      </div>
+      <div class="hm_loading" id="loading" hidden></div>
+      <div class="empty" id="empty">
+        <h1>输入用户名，生成互动星图</h1>
+        <p>采集公开的回复、引用、提及与转发，合并去重后，用互动类型、14 天半衰期和双向加权排出圈子。</p>
+        <button type="button" id="emptyDemo">先看示例盘面</button>
+      </div>
+      <ol class="stages" id="stages" hidden>
+        <li>多源采集</li>
+        <li>合并去重</li>
+        <li>关系评分</li>
+        <li>生成星图</li>
+      </ol>
+    </div>
+
+    <div class="chartbottom">
+      <div class="cbl">
+        <div class="fpbtns">
+          <ul>
+            <li class="fpli disabled" id="copyId">复制圈子 ID</li>
+            <li class="fpli disabled" id="openHome">打开主页</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cbr">
+        <div class="chartcolortip"><ul class="c1" id="legend"></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="feedbackModal" hidden>
+    <div class="feedbackbody">
+      <button type="button" class="fb_close" data-close="feedbackModal" aria-label="关闭">×</button>
+      <div class="fbt">意见反馈</div>
+      <div class="qit">反馈内容</div>
+      <div class="qib">
+        <textarea id="fbText" class="fd_context" maxlength="2000" placeholder="数据不准、交互别扭，或想加的功能"></textarea>
+      </div>
+      <div class="qit">联系方式（可选）</div>
+      <div class="qib">
+        <input id="fbContact" class="fd_context fd_line" maxlength="200" placeholder="邮箱或 @用户名，仅用于回复">
+      </div>
+      <div class="qibb">
+        <button type="button" class="cencelbtn" data-close="feedbackModal">取消</button>
+        <button type="button" class="subbtn" id="fbSubmit">提交</button>
+      </div>
+      <p class="fbnote" id="fbNote"></p>
+    </div>
+  </div>
+
+  <div class="modal" id="boardModal" hidden>
+    <div class="feedbackbody boardbody">
+      <button type="button" class="fb_close" data-close="boardModal" aria-label="关闭">×</button>
+      <div class="fbt">已保存的星图</div>
+      <div id="boardList" class="boardlist"></div>
+    </div>
+  </div>
+
+  <script src="/assets/app.js"></script>
+</body>
+</html>
