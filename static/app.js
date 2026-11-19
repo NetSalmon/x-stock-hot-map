@@ -279,10 +279,12 @@ function legendTicks() {
 function paintLegend() {
   const ul = $("legend");
   ul.replaceChildren();
+  ul.title = `色彩代表：${colorLabel()} (%)`;
   for (const value of legendTicks()) {
     const li = document.createElement("li");
     li.textContent = value > 0 ? `+${value}` : String(value);
     li.style.background = colorFor(value);
+    li.title = `${colorLabel()}: ${value > 0 ? "+" + value : value}%`;
     ul.appendChild(li);
   }
 }
@@ -1287,7 +1289,7 @@ function exportName() {
 function posterCanvas() {
   const dpr = canvas.width / Math.max(canvas.clientWidth, 1);
   const headerH = Math.round(56 * dpr);
-  const footerH = Math.round(36 * dpr);
+  const footerH = Math.round(58 * dpr);
   const out = document.createElement("canvas");
   out.width = canvas.width;
   out.height = canvas.height + headerH + footerH;
@@ -1309,7 +1311,7 @@ function posterCanvas() {
   g.fillText(`X星图  ${who}`, titleX, headerH * 0.38);
   g.font = `${Math.round(13 * dpr)}px sans-serif`;
   g.fillStyle = "#c5c8d0";
-  g.fillText(`${colorLabel()} · ${universeLabel()} · ${circle.users.length}人`, titleX, headerH * 0.72);
+  g.fillText(`色彩：${colorLabel()} · ${universeLabel()} · ${circle.users.length}人`, titleX, headerH * 0.72);
   if (canvas.clientWidth >= 800) {
     g.textAlign = "right";
     g.fillStyle = "#9aa0ae";
@@ -1318,25 +1320,78 @@ function posterCanvas() {
     g.textAlign = "left";
   }
   g.drawImage(canvas, 0, headerH);
+
+  // Footer legend area
+  const footerTop = headerH + canvas.height;
+  g.fillStyle = "#20232a";
+  g.fillRect(0, footerTop, out.width, footerH);
+  g.fillStyle = "#383c48";
+  g.fillRect(0, footerTop, out.width, Math.max(1, Math.round(1 * dpr)));
+
+  const pad = 12 * dpr;
+  const labelY = footerTop + 17 * dpr;
+  const metricTitle = `色彩代表：${colorLabel()} (%)`;
+
+  g.textBaseline = "middle";
+  g.textAlign = "left";
+  g.font = `700 ${Math.round(13 * dpr)}px sans-serif`;
+  g.fillStyle = "#ffffff";
+  g.fillText(metricTitle, pad, labelY);
+
+  const isFlow = state.colorKey === "flow";
+  const leftHint = isFlow ? "绿：流出" : "绿：降温";
+  const rightHint = isFlow ? "红：流入" : "红：升温";
+  const titleWidth = g.measureText(metricTitle).width;
+  const availWidth = out.width - pad * 2 - titleWidth;
+
+  g.font = `600 ${Math.round(12 * dpr)}px sans-serif`;
+  const rightX = out.width - pad;
+  g.textAlign = "right";
+
+  if (availWidth >= 280 * dpr) {
+    const rightPart = `${rightHint} (正值) ▶`;
+    const midPart = "    |    ";
+    const leftPart = `◀ ${leftHint} (负值)`;
+    const rightW = g.measureText(rightPart).width;
+    const midW = g.measureText(midPart).width;
+    g.fillStyle = "#ff4d4f";
+    g.fillText(rightPart, rightX, labelY);
+    g.fillStyle = "#686e7d";
+    g.fillText(midPart, rightX - rightW, labelY);
+    g.fillStyle = "#00c345";
+    g.fillText(leftPart, rightX - rightW - midW, labelY);
+  } else if (availWidth >= 160 * dpr) {
+    const rightPart = `${rightHint} ▶`;
+    const midPart = "  |  ";
+    const leftPart = `◀ ${leftHint}`;
+    const rightW = g.measureText(rightPart).width;
+    const midW = g.measureText(midPart).width;
+    g.fillStyle = "#ff4d4f";
+    g.fillText(rightPart, rightX, labelY);
+    g.fillStyle = "#686e7d";
+    g.fillText(midPart, rightX - rightW, labelY);
+    g.fillStyle = "#00c345";
+    g.fillText(leftPart, rightX - rightW - midW, labelY);
+  }
+
   const ticks = legendTicks();
   const gap = 2 * dpr;
-  const pad = 8 * dpr;
   const boxW = (out.width - pad * 2 - gap * (ticks.length - 1)) / ticks.length;
-  const boxH = Math.min(22 * dpr, footerH - 8 * dpr);
-  const top = headerH + canvas.height + (footerH - boxH) / 2;
-  g.font = `${Math.max(9 * dpr, 10)}px sans-serif`;
+  const boxH = Math.round(20 * dpr);
+  const boxTop = footerTop + 29 * dpr;
+  g.font = `600 ${Math.max(9 * dpr, 10)}px sans-serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
   ticks.forEach((value, i) => {
     const x = pad + i * (boxW + gap);
     g.fillStyle = colorFor(value);
-    g.fillRect(x, top, boxW, boxH);
+    g.fillRect(x, boxTop, boxW, boxH);
     g.fillStyle = "#fff";
     g.save();
     g.beginPath();
-    g.rect(x, top, boxW, boxH);
+    g.rect(x, boxTop, boxW, boxH);
     g.clip();
-    g.fillText(value > 0 ? `+${value}` : String(value), x + boxW / 2, top + boxH / 2);
+    g.fillText(value > 0 ? `+${value}` : String(value), x + boxW / 2, boxTop + boxH / 2);
     g.restore();
   });
   return out;
