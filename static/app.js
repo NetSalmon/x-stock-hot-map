@@ -382,7 +382,7 @@ function applyCircle(circle, push) {
   $("lookupId").value = circle.id === "demo" ? "" : circle.id;
   const when = new Date(circle.createdAt * 1000);
   const stamp = `${when.getMonth() + 1}-${when.getDate()} ${pad(when.getHours())}:${pad(when.getMinutes())}`;
-  const tag = circle.source === "demo" ? "示例盘面" : `@${circle.username}`;
+  const tag = circle.source === "demo" ? (circle.username && circle.username !== "demo" ? `示例 · @${circle.username}` : "示例盘面") : `@${circle.username}`;
   state.baseStatus = `${stamp}\n${tag} · ${circle.users.length}人`;
   setStatus(state.baseStatus);
   $("copyId").classList.toggle("disabled", circle.id === "demo");
@@ -1277,7 +1277,7 @@ function shareUrl() {
 
 function shareText() {
   const circle = state.circle;
-  const who = circle.source === "demo" ? "示例盘面" : `@${circle.username}`;
+  const who = circle.username && circle.username !== "demo" ? `@${circle.username}` : (circle.source === "demo" ? "示例盘面" : `@${circle.username}`);
   return `${who} 的互动星图 · ${colorLabel()}`;
 }
 
@@ -1306,7 +1306,7 @@ function posterCanvas() {
   g.fillStyle = "#fff";
   g.textBaseline = "middle";
   g.font = `700 ${Math.round(20 * dpr)}px sans-serif`;
-  const who = circle.source === "demo" ? "示例盘面" : `@${circle.username}`;
+  const who = circle.username && circle.username !== "demo" ? `@${circle.username}` : (circle.source === "demo" ? "示例盘面" : `@${circle.username}`);
   const titleX = left + mark + 10 * dpr;
   g.fillText(`X星图  ${who}`, titleX, headerH * 0.38);
   g.font = `${Math.round(13 * dpr)}px sans-serif`;
