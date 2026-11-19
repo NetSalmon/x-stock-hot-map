@@ -1,14 +1,5 @@
 /* Copyright (C) 2026 NetSalmon. SPDX-License-Identifier: AGPL-3.0-only */
 
-const SCALE = [
-  "#f63538", "#ee373a", "#e6393b", "#df3a3d", "#d73c3f", "#ce3d41", "#c73e43",
-  "#bf4045", "#b64146", "#ae4248", "#a5424a", "#9d434b", "#94444d", "#8b444e",
-  "#824450", "#784551", "#6f4552", "#644553", "#5a4554", "#4f4554", "#414554",
-  "#3f4c53", "#3d5451", "#3b5a50", "#3a614f", "#38694f", "#366f4e", "#35764e",
-  "#347d4e", "#32844e", "#31894e", "#31904e", "#30974f", "#2f9e4f", "#2fa450",
-  "#2faa51", "#2fb152", "#2fb854", "#30be56", "#30c558", "#30cc5a",
-].reverse();
-
 const UNIVERSES = [
   ["all", "全部互动"],
   ["mutual", "双向圈"],
@@ -48,8 +39,12 @@ const LEVELS = [
   [3, "三级关系"],
 ];
 
-const LEGEND_CHANGE = ["-4%", "-3%", "-2%", "-1%", "0%", "1%", "2%", "3%", "4%"];
-const LEGEND_FLOW = ["-20%", "-15%", "-10%", "-5%", "0%", "5%", "10%", "15%", "20%"];
+const DENSITIES = [
+  ["1", "疏"],
+  ["2", "标准"],
+  ["3", "密"],
+  ["4", "很密"],
+];
 
 let suppressClick = false;
 
@@ -59,6 +54,7 @@ const state = {
   colorKey: "flow",
   baseStatus: "等待生成",
   areaKey: "score",
+  scaleDensity: 2,
   level: 1,
   focus: null,
   watchOn: false,
@@ -79,6 +75,9 @@ function boot() {
   fillSelect($("colorKey"), colorOptions(), "flow");
   fillSelect($("areaKey"), AREAS, "score");
   fillSelect($("level"), LEVELS, "1");
+  const savedDensity = Number(localStorage.getItem("xstar-scale-density"));
+  state.scaleDensity = DENSITIES.some(([value]) => Number(value) === savedDensity) ? savedDensity : 2;
+  fillSelect($("scaleDensity"), DENSITIES, String(state.scaleDensity));
   const ul = $("universes");
   for (const [value, label] of UNIVERSES) {
     const li = document.createElement("li");
@@ -109,6 +108,12 @@ function boot() {
   $("emptyDemo").addEventListener("click", () => loadDemo());
   $("colorKey").addEventListener("change", () => {
     state.colorKey = $("colorKey").value;
+    paintLegend();
+    render();
+  });
+  $("scaleDensity").addEventListener("change", () => {
+    state.scaleDensity = Number($("scaleDensity").value);
+    localStorage.setItem("xstar-scale-density", String(state.scaleDensity));
     paintLegend();
     render();
   });
@@ -233,13 +238,49 @@ function fillSelect(select, options, current) {
   }
 }
 
+function snapTick(value) {
+  if (!(value > 0)) return 0;
+  const exp = Math.floor(Math.log10(value));
+  const base = 10 ** exp;
+  const fraction = value / base;
+  const nice = fraction < 1.5 ? 1 : fraction < 3.5 ? 2 : fraction < 7.5 ? 5 : 10;
+  const snapped = nice * base;
+  const clean = value >= 10 ? Math.round(value) : Math.round(value * 2) / 2;
+  if (clean > 0 && clean < 100 && Math.abs(clean - value) / value < 0.08) return clean;
+  return snapped;
+}
+
+function colorSpan() {
+  const base = state.colorKey === "flow" ? 20 : 4;
+  const tighten = [2, 1, 0.5, 0.25][state.scaleDensity - 1] ?? 1;
+  return base * tighten;
+}
+
+function legendTicks() {
+  const span = colorSpan();
+  const bands = [
+    [1, 5],
+    [0.25, 0.5, 1, 2, 5],
+    [0.1, 0.25, 0.5, 1, 2, 4],
+    [0.05, 0.1, 0.25, 0.5, 1, 2, 3],
+  ][state.scaleDensity - 1] ?? [0.25, 0.5, 1, 2, 5];
+  const values = new Set([0, -100, 100]);
+  for (const mult of bands) {
+    const tick = snapTick(span * mult);
+    if (tick <= 0 || tick >= 100) continue;
+    values.add(tick);
+    values.add(-tick);
+  }
+  return [...values].sort((a, b) => a - b);
+}
+
 function paintLegend() {
-  const labels = state.colorKey === "flow" ? LEGEND_FLOW : LEGEND_CHANGE;
   const ul = $("legend");
   ul.replaceChildren();
-  for (const label of labels) {
+  for (const value of legendTicks()) {
     const li = document.createElement("li");
-    li.textContent = label;
+    li.textContent = value > 0 ? `+${value}` : String(value);
+    li.style.background = colorFor(value);
     ul.appendChild(li);
   }
 }
@@ -836,16 +877,18 @@ function walk(node, groups, leaves) {
 }
 
 function colorFor(value) {
-  if (state.colorKey === "flow") {
-    const n = Number(value) || 0;
-    if (n >= 20) return SCALE[40];
-    if (n <= -20) return SCALE[0];
-    return SCALE[Math.max(0, Math.min(40, Math.floor(n) + 20))];
-  }
-  const t = Number(value) || 0;
-  if (t >= 4) return SCALE[40];
-  if (t <= -4) return SCALE[0];
-  return SCALE[Math.max(0, Math.min(40, Math.floor((t + 4) * 5)))];
+  const n = Number(value) || 0;
+  const span = colorSpan();
+  const sign = Math.sign(n);
+  const mag = Math.min(Math.abs(n), 100);
+  let strength;
+  if (mag <= span) strength = Math.sqrt(mag / span) * 0.78;
+  else strength = 0.78 + 0.22 * Math.sqrt((mag - span) / (100 - span));
+  if (strength < 0.02) return "#3c4150";
+  const hue = sign > 0 ? 356 + strength * 8 : 150 - strength * 16;
+  const sat = 30 + strength * 52;
+  const light = 18 + strength * 30;
+  return `hsl(${hue.toFixed(1)} ${sat.toFixed(1)}% ${light.toFixed(1)}%)`;
 }
 
 function updateSide(users) {

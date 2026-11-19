@@ -201,6 +201,8 @@ button { border: 0; background: transparent; color: inherit; }
   margin-bottom: 3px;
 }
 
+.colortype .title:not(:first-child) { margin-top: 8px; }
+
 select {
   width: 100%;
   color: #fff;
@@ -447,24 +449,19 @@ select option:disabled { color: #aaa; }
 .fpbtns li:hover { filter: brightness(1.12); }
 .fpbtns li.disabled { background: #e09e56; cursor: not-allowed; }
 
-.chartcolortip ul { margin: 0; padding: 0; display: flex; gap: 1px; }
+.cbr { min-width: 0; max-width: calc(100% - 220px); }
+.chartcolortip { overflow-x: auto; max-width: 100%; }
+.chartcolortip ul { margin: 0; padding: 0; display: flex; gap: 1px; width: max-content; }
 .chartcolortip li {
   list-style: none;
-  width: 38px;
+  min-width: 34px;
+  padding: 0 3px;
   height: 22px;
   line-height: 22px;
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
+  color: #fff;
 }
-.chartcolortip li:nth-child(1) { background: #00d641; }
-.chartcolortip li:nth-child(2) { background: #1aa448; }
-.chartcolortip li:nth-child(3) { background: #0e6f2f; }
-.chartcolortip li:nth-child(4) { background: #085421; }
-.chartcolortip li:nth-child(5) { background: #424453; }
-.chartcolortip li:nth-child(6) { background: #6d1414; }
-.chartcolortip li:nth-child(7) { background: #961010; }
-.chartcolortip li:nth-child(8) { background: #be0808; }
-.chartcolortip li:nth-child(9) { background: #e41414; }
 
 .modal {
   position: fixed;
@@ -572,6 +569,7 @@ select option:disabled { color: #aaa; }
   .mainchart, .chartbottom { margin-left: 0; }
   .mainchart { height: calc(100vh - 132px); }
   .chartbottom { height: auto; min-height: 42px; flex-wrap: wrap; padding: 4px 8px 8px; }
-  .chartcolortip li { width: 32px; font-size: 11px; }
+  .cbr { max-width: 100%; }
+  .chartcolortip li { min-width: 26px; padding: 0 2px; font-size: 10px; }
   .fullscreen { gap: 10px; font-size: 13px; margin-left: auto; }
 }
